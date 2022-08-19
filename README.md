@@ -6,7 +6,7 @@ Welcome to the introduction of `lr2cluster` project! The project aims to help id
 
 This page is dedicated as a tutorial and complimentary of paper 
 **Epidemiological Cluster Identification using Multiple Data Sources: An Approach Using Logistic Regression**, by
-Kurnia Susvitasari, Paul Tupper, Irving Cancino-Mu\~noz, Mariana G. L\'opez, I\~naki Comas, Caroline Colijn
+Kurnia Susvitasari, Paul Tupper, Irving Cancino-Mu\noz, Mariana G. L\'opez, I\naki Comas, Caroline Colijn
 
 
 ## Installing *LR2Cluster* package
