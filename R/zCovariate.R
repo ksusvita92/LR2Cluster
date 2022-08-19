@@ -58,5 +58,5 @@ zCovariate <- function(cluster, X = NULL, location = NULL, .removeRepetition = F
   names(Z)[1:2] <- c("case", "to.case")
 
 
-  if(.removeRepetition) distinct(Z, across(-c(case, to.case)), .keep.all = T) else Z
+  if(.removeRepetition) distinct(Z, across(-c(case, to.case)), .keep_all = T) else Z
 }
