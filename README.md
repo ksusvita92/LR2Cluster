@@ -25,5 +25,5 @@ library("LR2Cluster")
 ```
 
 ## Tutorial and asking questions
-- The tutorial can be download in [here](vignettes/tutorial%20LR2Cluster.pdf)
+- The tutorial can be download in [here](https://github.com/ksusvita92/lr2cluster/blob/master/Tutorial.pdf)
 - For the general question and bugs report, send to <ksusvita@gmail.com>
