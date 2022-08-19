@@ -18,4 +18,4 @@
 #' @source Xu Y, Cancino-Muñoz I, Torres-Puente M, Villamayor LM, Borrás R, et al. (2019) High-resolution mapping of tuberculosis transmission:
 #' Whole genome sequencing and phylogenetic modelling of a cohort from Valencia Region, Spain. PLOS Medicine 16(10): e1002961.
 #' \url{https://doi.org/10.1371/journal.pmed.1002961}
-"TBcluster"
+"tb_valencia"
