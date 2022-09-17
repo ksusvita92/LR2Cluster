@@ -49,26 +49,40 @@ clusterPLR <- function(formula, data, newdata, threshold = NULL, nbest = 3){
   varnameLoc <- varname[varname %in% c("lat", "long", "latitude", "longitude", "Lat", "Long", "Latitude", "Longitude")]
   varnameX <- varname[!(varname %in% c("+", varnameLoc))]
 
-  X <- data[, varnameX]
-  X0 <- newdata[, varnameX]
   location <- data[, varnameLoc]
   newlocation <- newdata[, varnameLoc]
+
+  if(length(varnameX) == 0){
+    X <- NULL
+    X0 <- NULL
+  } else if(length(varnameX) == 1){
+    X <- as.data.frame(data[, varnameX])
+    names(X) <- varnameX
+    X0 <- as.data.frame(newdata[, varnameX])
+    names(X0) <- varnameX
+  } else{
+    X <- data[, varnameX]
+    X0 <- newdata[, varnameX]
+  }
 
 
 
   # create pairwise data for test set
-  Z0  <- foreach(i = 1:nrow(X0), .combine = "rbind") %:%
-    foreach(j = 1:ncol(X0), .combine = "cbind") %do% {
-      x <- X[,j]
-      x0 <- X0[i,j]
-      if(class(x0) == "factor" || class(x0) == "character") res <- ifelse(x0 == x, x0, "DIFF")
-      else{
-        res <- abs(x0-x)
-        res <- as.numeric(res)
+  if(nrow(X0) > 0){
+    Z0  <- foreach(i = 1:nrow(X0), .combine = "rbind") %:%
+      foreach(j = 1:ncol(X0), .combine = "cbind") %do% {
+        x <- X[,j]
+        x0 <- X0[i,j]
+        if(class(x0) == "factor" || class(x0) == "character") res <- ifelse(x0 == x, x0, "DIFF")
+        else{
+          res <- abs(x0-x)
+          res <- as.numeric(res)
+        }
+        as.data.frame(res)
       }
-      as.data.frame(res)
-    }
-  names(Z0) <- names(X0)
+    names(Z0) <- names(X0)
+  }
+
 
   if(length(location) > 0 && length(newlocation) > 0){
     # update lat, long in the formula to Spatial
@@ -82,8 +96,8 @@ clusterPLR <- function(formula, data, newdata, threshold = NULL, nbest = 3){
 
 
   # create pairwise data for training set
-  if(length(location) > 0) traindata <- zCovariate(data[,yname], X, location, T)
-  else traindata <- zCovariate(data[,yname], X, .removeRepetition = T)
+  if(length(location) > 0) traindata <- zCovariate(data[,yname], X, location, F)
+  else traindata <- zCovariate(data[,yname], X, .removeRepetition = F)
 
 
 
