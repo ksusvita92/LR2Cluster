@@ -68,7 +68,7 @@ clusterPLR <- function(formula, data, newdata, threshold = NULL, nbest = 3){
 
 
   # create pairwise data for test set
-  if(nrow(X0) > 0){
+  if(nrow(X0) > 0 && !is.null(X0)){
     Z0  <- foreach(i = 1:nrow(X0), .combine = "rbind") %:%
       foreach(j = 1:ncol(X0), .combine = "cbind") %do% {
         x <- X[,j]
@@ -81,14 +81,14 @@ clusterPLR <- function(formula, data, newdata, threshold = NULL, nbest = 3){
         as.data.frame(res)
       }
     names(Z0) <- names(X0)
-  }
+  } else Z0 <- NULL
 
 
   if(length(location) > 0 && length(newlocation) > 0){
     # update lat, long in the formula to Spatial
     predictor <- paste(c(varnameX, "Spatial"), collapse = "+")
 
-    spatial <- foreach(i = 1:nrow(X0), .combine = "rbind") %do% geodist::geodist(x = location, y = newlocation[i,], measure="haversine")/1000
+    spatial <- foreach(i = 1:nrow(newlocation), .combine = "rbind") %do% geodist::geodist(x = location, y = newlocation[i,], measure="haversine")/1000
     Z0 <- Z0 %>% bind_cols(data.frame(Spatial = spatial))
   } else predictor <- paste(varnameX, collapse = "+")
   #
