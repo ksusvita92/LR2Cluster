@@ -28,7 +28,14 @@ plr <- function(formula, data){
   varnameLoc <- varname[varname %in% c("lat", "long", "latitude", "longitude", "Lat", "Long", "Latitude", "Longitude")]
   varnameX <- varname[!(varname %in% c("+", varnameLoc))]
 
-  X <- data[, varnameX]
+  if(length(varnameX) == 0){
+    X <- NULL
+  } else if(length(varnameX) == 1){
+    X <- as.data.frame(data[, varnameX])
+    names(X) <- varnameX
+  } else{
+    X <- data[, varnameX]
+  }
   location <- data[, varnameLoc]
   #
 
@@ -37,10 +44,10 @@ plr <- function(formula, data){
   # create pairwise data for training set
   if(length(location) > 0){
     predictor <- paste(c(varnameX, "Spatial"), collapse = "+")
-    traindata <- zCovariate(data[,yname], X, location, T)
+    traindata <- zCovariate(data[,yname], X, location, F)
   } else{
     predictor <- paste(varnameX, collapse = "+")
-    traindata <- zCovariate(data[,yname], X, .removeRepetition = T)
+    traindata <- zCovariate(data[,yname], X, .removeRepetition = F)
   }
   #
 
