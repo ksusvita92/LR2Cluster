@@ -19,6 +19,8 @@ predict.plr <- function(obj, newdata, case.id = NULL){
   if(!inherits(obj, "plr")) stop("obj is not of class 'plr'.")
   if(is.null(case.id)) case.id <- paste("cs", 1:nrow(newdata), sep = "_")
 
+  newdata <- as.data.frame(newdata)
+
   # get pairwise data
   mod <- obj$formula
   split.mod <-  unlist(stringr::str_split(mod, "\ ~"))
@@ -27,8 +29,15 @@ predict.plr <- function(obj, newdata, case.id = NULL){
   if("Spatial" %in% varname) varnameLoc <- names(newdata)[names(newdata) %in% c("lat", "long", "latitude", "longitude")]
   else varnameLoc <- character(0)
 
-  X0 <- newdata[, varnameX]
   newlocation <- newdata[, varnameLoc]
+  if(length(varnameX) == 0){
+    X0 <- NULL
+  } else if(length(varnameX) == 1){
+    X0 <- as.data.frame(newdata[, varnameX])
+    names(X0) <- varnameX
+  } else{
+    X0 <- newdata[, varnameX]
+  }
 
 
   if(length(newlocation) > 0) pairdata <- zCovariate(rep("uncluster", nrow(newdata)), X0, newlocation, F, case.id)
