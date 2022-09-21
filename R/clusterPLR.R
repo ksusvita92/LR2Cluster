@@ -107,6 +107,7 @@ clusterPLR <- function(formula, data, newdata, threshold = NULL, nbest = 3){
   mypred <- predict(myfit, Z0, type = "resp")
 
   id <- paste("cs", 1:nrow(newdata), sep = "_")
+  id <- factor(id, levels = id)
   myscore <- data.frame(id = rep(id, each = nrow(data)), cluster = rep(data[,yname], nrow(newdata)), pred = mypred) %>%
     group_by(id, cluster) %>% summarise(prob = max(pred)) %>% ungroup() %>% tidyr::spread(., cluster, prob) %>% as.data.frame()
   myscore <- myscore[, -1]
@@ -137,5 +138,5 @@ clusterPLR <- function(formula, data, newdata, threshold = NULL, nbest = 3){
             model_fit = summary(myfit),
             best_cluster = myrank,
             cluster_score = round(myscore,4))
-  x <- new_clusterAssignment(x)
+  new_clusterAssignment(x)
 }
