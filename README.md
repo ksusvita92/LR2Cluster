@@ -14,14 +14,14 @@ To install the package, you will need `remotes` package:
 
 ```r
 install.packages("remotes")
-remotes::install_github("ksusvita92/LR2Cluster")
+remotes::install_github("ksusvita92/lr2cluster")
 ```
 
 
 Once installed, the package can be loaded using:
 
 ```r
-library("LR2Cluster")
+library("lr2cluster")
 ```
 
 ## Tutorial and asking questions
