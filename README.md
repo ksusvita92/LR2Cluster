@@ -2,15 +2,15 @@
 *Cluster identification using multiple data sources*
 
 
-Welcome to the introduction of `lr2cluster` project! The project aims to help identify cluster assignment of a disease using multiple data sources when some direct methods, such as contact tracing and genome sequencing are only available for some partially observed data.
+Welcome to the introduction of `lr2cluster` project! The project aims to assign cases of a disease to clusters using multiple data sources when direct methods, such as contact tracing or genome sequencing, are only available for some data.
 
-This page is dedicated as a tutorial and complimentary of paper 
+This page provides a tutorial and is complimentary to the paper 
 **Epidemiological Cluster Identification using Multiple Data Sources: An Approach Using Logistic Regression**, by
-Kurnia Susvitasari, Paul Tupper, Irving Cancino-Munoz, Mariana G. Lopez, Inaki Comas, Caroline Colijn
+Kurnia Susvitasari, Paul Tupper, Irving Cancino-Muñoz, Mariana G. López, Iñaki Comas, Caroline Colijn
 
 
 ## Installing *LR2Cluster* package
-To install the package, you will need `remotes` package:
+To install the package, you will need the `remotes` package:
 
 ```r
 install.packages("remotes")
@@ -25,5 +25,5 @@ library("lr2cluster")
 ```
 
 ## Tutorial and asking questions
-- The tutorial can be download in [here](https://github.com/ksusvita92/lr2cluster/blob/master/Tutorial.pdf)
-- For the general question and bugs report, send to <ksusvita@gmail.com>
+- The tutorial can be downloaded [here](https://github.com/ksusvita92/lr2cluster/blob/master/Tutorial.pdf)
+- For general questions and bug reports, contact <ksusvita@gmail.com>
