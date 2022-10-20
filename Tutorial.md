@@ -25,45 +25,6 @@ Once remotes is successfully installed, run the following to install and load `l
 
 ```r
 remotes::install_github("ksusvita92/lr2cluster")
-```
-
-```
-## geodist    (0.0.7 -> 0.0.8) [CRAN]
-## stringdist (0.9.8 -> 0.9.9) [CRAN]
-## 
-##   There are binary versions available but the source versions are later:
-##            binary source needs_compilation
-## geodist     0.0.7  0.0.8              TRUE
-## stringdist  0.9.8  0.9.9              TRUE
-## 
-##   
-   checking for file ‘/private/var/folders/6h/p0z_yjc57wb1wvbm07rw3q4h0000gn/T/Rtmp1rz4DP/remotes15467af595cd/ksusvita92-lr2cluster-2759987/DESCRIPTION’ ...
-  
-✔  checking for file ‘/private/var/folders/6h/p0z_yjc57wb1wvbm07rw3q4h0000gn/T/Rtmp1rz4DP/remotes15467af595cd/ksusvita92-lr2cluster-2759987/DESCRIPTION’
-## 
-  
-─  preparing ‘lr2cluster’:
-## 
-  
-   checking DESCRIPTION meta-information ...
-  
-✔  checking DESCRIPTION meta-information
-## 
-  
-─  checking for LF line-endings in source and make files and shell scripts
-## 
-  
-─  checking for empty or unneeded directories
-## 
-  
-─  building ‘lr2cluster_0.1.0.tar.gz’
-## 
-  
-   
-## 
-```
-
-```r
 library(lr2cluster)
 ```
 
