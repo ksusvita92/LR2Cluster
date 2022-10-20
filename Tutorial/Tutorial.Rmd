@@ -9,6 +9,8 @@ output:
 
 This document is to provide an introductory tutorial to `lr2cluster` package. The package implements tools to help identify cluster assignments using multiple data sources when some direct methods such as contact tracing and genomic sequencing are only available for some data. There are also complimentary functions, such as to estimate a cluster’s size increment and to choose which new cases to be sequenced next. This tutorial provides an overview of `lr2cluster`’s basic functionalities.
 
+-- Kurnia
+
 
 
 # Installing Package
