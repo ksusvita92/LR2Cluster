@@ -1,7 +1,7 @@
 ---
 title: "An Introduction to lr2cluster"
 author: "Kurnia Susvitasari"
-date: "2022-10-20"
+date: "2022-10-26"
 output:
   pdf_document:
     keep_md: true
@@ -29,33 +29,74 @@ library(lr2cluster)
 ```
 
 
+```r
+library(lr2cluster)
+```
+
+
 
 # Valencia Data
 
-The package provides a data of _M.tuberculosis_ in Valencia, Spain between 2014 and 2016. It consist of 11 variables and 531 observations, in which 363 are unclustered cases (noted by `tr_cl = unique`).
+The data of TB cases in Valencia is available at https://doi.org/10.7554/eLife.76605. The following is a short script to prepare the data. In this tutorial, we do not provide the real patient's geographical information.
 
 
 ```r
-data("tb_valencia")
-str(tb_valencia)
+library(readxl)
+library(dplyr)
 ```
 
 ```
-## 'data.frame':	531 obs. of  11 variables:
-##  $ id_server: chr  "G01" "G02" "G03" "G04" ...
-##  $ tr_cl    : chr  "unique" "unique" "unique" "CL003" ...
-##  $ age      : int  23 39 45 52 30 53 40 46 45 29 ...
-##  $ sex      : chr  "FEMALE" "MALE" "FEMALE" "MALE" ...
-##  $ foreign  : chr  "YES" "No" "No" "No" ...
-##  $ dx_data  : Date, format: "2013-12-27" "2014-02-03" ...
-##  $ location : chr  "Pulmonar" "Pulmonar" "Pulmonar" "Pulmonar" ...
-##  $ diabetes : chr  "No" "YES" "YES" "No" ...
-##  $ hiv      : chr  "No" "No" "No" "YES" ...
-##  $ latitude : num  39.9 40 40 40 40.5 ...
-##  $ longitude: num  -0.157 -0.028 -0.0697 -0.1074 0.4048 ...
+## 
+## Attaching package: 'dplyr'
 ```
 
-To see the documentation of each variable, run `?tb_valencia`.
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
+url <- paste("https://elifesciences.org/download/aHR0cHM6Ly9jZG4uZWxpZmVzY2llbmNlcy5vcmc",
+"vYXJ0aWNsZXMvNzY2MDUvZWxpZmUtNzY2MDUtc3VwcDEtdjEueGxzeA--/elife-76605-supp1-v1.xlsx?_ha",
+"sh=pzQwKD1DzDLre7kKrWI%2Fhd%2BjY2FGgpekrPI4vXrlWNo%3D", sep = "")
+destfile <- "rawdt.xlsx"
+curl::curl_download(url, destfile)
+rawdt <- read_excel(destfile, range = "A3:AB778", na = "NA")
+```
+
+```
+## New names:
+## * `` -> `...1`
+```
+
+```r
+# subset the necessary column and cases
+tb_valencia <- rawdt %>% 
+  transmute(ID = ...1, Cluster = `Genomic
+Cluster ID`, 
+  Gender = Gender, 
+  Foreign = ifelse(`Country of birth`=="SPAIN", "No", "YES"), 
+  Diabetes = Diabetes, 
+  HIV = `HIV infected`) %>%
+  filter(!is.na(Gender), !is.na(Foreign), !is.na(Diabetes), !is.na(HIV)) 
+
+# subset clusters having >2 members
+nm <- as.data.frame(table(tb_valencia$Cluster)) %>% filter(Freq > 2) %>% pull(Var1)
+tb_valencia <- tb_valencia %>% filter(Cluster %in% nm)
+
+# create toy example for patient's location
+set.seed(123)
+tb_valencia <- tb_valencia %>%
+  mutate(Longitude = rnorm(nrow(tb_valencia)), Latitude = rnorm(nrow(tb_valencia)))
+```
+
 
 
 
@@ -68,27 +109,26 @@ To transform Valencia data into pairwise-level data, run:
 
 
 ```r
-dt <- tb_valencia[tb_valencia$tr_cl != "unique",] #exclude unclustered cases
-pairdt <- zCovariate(cluster = dt$tr_cl,
-                     X = dt[,3:9],
-                     location = dt[,10:11],
-                     .removeRepetition = T, #.removeRepetition = F to keep all pairs
-                     id = dt$id_server)
+dt <- tb_valencia[tb_valencia$Cluster != "unique",] #exclude unclustered cases
+pairdt <- zCovariate(cluster = dt$Cluster,
+                     X = dt[,3:6],
+                     location = dt[,7:8],
+                     id = dt$ID)
 head(pairdt)
 ```
 
 ```
-##   case to.case y   Spatial age  sex foreign dx_data location diabetes  hiv
-## 1  G19     G04 0  66.78369  22 MALE    DIFF       4 Pulmonar       No DIFF
-## 2  G24     G04 0  84.94556  12 DIFF      No      65 Pulmonar       No DIFF
-## 3  G60     G04 0  98.18234   7 MALE    DIFF     432 Pulmonar       No DIFF
-## 4  G76     G04 0 185.13454  25 DIFF      No      17 Pulmonar       No DIFF
-## 5  G77     G04 1 185.13454   6 MALE      No      59 Pulmonar       No  YES
-## 6  G78     G04 0 159.54006  12 DIFF      No      10 Pulmonar       No DIFF
+##    case to.case y  Spatial Gender Foreign Diabetes HIV
+## 1 G401m   G368m 1 132.6483   DIFF    DIFF     DIFF  no
+## 2 G553m   G368m 1 251.3182   DIFF    DIFF     DIFF  no
+## 3 G566m   G368m 1 190.1091   male     YES     DIFF  no
+## 4 G1163   G368m 1 294.5370   male     YES     DIFF  no
+## 5 G1411   G368m 1 348.3176   DIFF    DIFF     DIFF  no
+## 6  G201   G368m 0 271.9317   male     YES     DIFF  no
 ```
 
 
-Notice that there are 4 new columns in the data frame above: `case`, `to.case`, `y`, and `Spatial.`
+Notice that there are 4 new columns in the data frame above: `case`, `to.case`, `y`, and `Spatial`.
 
   + `case`, `to.case`: vector of case id; together represent a pair.
   + `y`: a binary variable; `y = 1` means if a pair is in the same cluster, `y = 0` means otherwise.
@@ -100,7 +140,7 @@ Each categorical variable will have one additional level, called `DIFF` which in
 
 # Pairwise Logistic Regression
 
-There are two logistic regression models introduced in this package: the multinomial logistic regression (MLR) and the pairwise logistic regression (PLR). The difference between the two models lies on the data type used to train the model, and the response variable. For instance, MLR uses individual-level data and the response variable is the index of the cases’ clusters, whereas PLR uses pairwise-level data and binary response variable.
+There are two logistic regression models introduced in this package: the multinomial logistic regression (MLR) and the pairwise logistic regression (PLR). The difference between the two models lies on the data type used to train the model, and the response variable. For instance, MLR uses individual-level data and the response variable is the index of the cases’ clusters, whereas PLR uses pairwise-level data and binary response variable indicating whether two cases are in the same cluster.
 
 
 ## Fit PLR model
@@ -109,7 +149,7 @@ PLR perform regression analysis which maps pairwise predictors to a binary respo
 
 
 ```r
-fit_plr <- plr(formula = tr_cl ~ sex+foreign+dx_data+latitude+longitude,
+fit_plr <- plr(formula = Cluster ~ Gender+Foreign+Diabetes+HIV+Latitude+Longitude,
                data = dt)
 summary(fit_plr)
 ```
@@ -121,30 +161,33 @@ summary(fit_plr)
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
-## -0.4496  -0.2444  -0.1854  -0.1208   3.7963  
+## -0.3175  -0.2366  -0.2242  -0.1775   2.9739  
 ## 
 ## Coefficients:
-##               Estimate Std. Error z value Pr(>|z|)    
-## (Intercept) -3.4959623  0.1704252 -20.513  < 2e-16 ***
-## sexFEMALE    0.2240378  0.1939951   1.155    0.248    
-## sexMALE      0.2077319  0.1270605   1.635    0.102    
-## foreignNo    0.5688820  0.1391698   4.088 4.36e-05 ***
-## foreignYES   1.1097600  0.2038516   5.444 5.21e-08 ***
-## dx_data     -0.0003023  0.0002209  -1.369    0.171    
-## Spatial     -0.0157692  0.0016022  -9.842  < 2e-16 ***
+##                Estimate Std. Error z value Pr(>|z|)    
+## (Intercept)  -4.1446254  0.2696505 -15.370  < 2e-16 ***
+## Genderfemale -0.0215090  0.2333326  -0.092  0.92655    
+## Gendermale    0.1057894  0.1327907   0.797  0.42565    
+## ForeignNo     0.5722562  0.1479516   3.868  0.00011 ***
+## ForeignYES    1.0130621  0.2335062   4.338 1.43e-05 ***
+## Diabetesno   -0.0137715  0.1525509  -0.090  0.92807    
+## Diabetesyes  -0.1957849  0.5991499  -0.327  0.74384    
+## HIVno        -0.1180810  0.1836775  -0.643  0.52031    
+## HIVyes       -0.1802961  1.0268152  -0.176  0.86062    
+## Spatial       0.0002080  0.0006323   0.329  0.74222    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
 ## (Dispersion parameter for binomial family taken to be 1)
 ## 
-##     Null deviance: 2869.9  on 14027  degrees of freedom
-## Residual deviance: 2697.7  on 14021  degrees of freedom
-## AIC: 2711.7
+##     Null deviance: 2499.0  on 11324  degrees of freedom
+## Residual deviance: 2473.2  on 11315  degrees of freedom
+## AIC: 2493.2
 ## 
 ## Number of Fisher Scoring iterations: 7
 ```
 
-`summary()` function provides the estimated regression coefficients, together with their statistic t-test. An important note for the users is if ones want to fit spatial distance between two cases, ones must name the geographical location as `latitude` (or `lat`), and `longitude` (or `long`).
+`summary()` function provides the estimated regression coefficients, together with the Wald test. An important note for the users is if ones want to fit spatial distance between two cases, ones must name the geographical location as `latitude` (or `lat`, `Lat`, `Latitude`), and `longitude` (or `long`, `Long`, `Longitude`).
 
 
 ## Predict if two cases are in the same cluster
@@ -167,8 +210,8 @@ library(caret)
 ```
 
 ```r
-set.seed(12345)
-id <- createDataPartition(dt$tr_cl, p = .6, list = F)
+set.seed(123)
+id <- createDataPartition(dt$Cluster, p = .6, list = F)
 traindt <- dt[id,]
 testdt <- dt[-id,]
 ```
@@ -177,11 +220,11 @@ Use `plr()` function to fit PLR model on `traindt`, and run the following to get
 
 
 ```r
-fit_plr <- plr(formula = tr_cl ~ sex+foreign+dx_data+latitude+longitude,
+fit_plr <- plr(formula = Cluster ~ Gender+Foreign+Diabetes+HIV+Latitude+Longitude,
                data = traindt)
 pred_plr <- predict(obj = fit_plr,
                     newdata = testdt,
-                    case.id = testdt$id_server) #case.id can be NULL
+                    case.id = testdt$ID) #case.id can be NULL
 ```
 
 The function `predict.plr()` (or `predict()`) returns a data frame which contains a vector of the predicted probability if a pair of cases are in the same cluster, and its standard error.
@@ -195,7 +238,7 @@ The function `optThreshold()` requires a vector of the true response variable an
 
 ```r
 # get the true response variable of testdt data
-tr_resp <- zCovariate(cluster = testdt$tr_cl)$y
+tr_resp <- zCovariate(cluster = testdt$Cluster)$y
 opt_threshold <- optThreshold(response = tr_resp,
                               prediction = pred_plr$y,
                               cost.ratio = 50) #default is 1
@@ -215,7 +258,7 @@ opt_threshold
 ## ==================================================================
 ##  
 ##   threshold specificity sensitivity    accuracy         auc 
-##  0.03851649  0.90960452  0.40000000  0.90426275  0.71972693
+##   0.0206544   0.6842975   0.6000000   0.6832653   0.6200000
 ```
 
 `optThreshold()` returns a list of values, such as:
@@ -252,7 +295,7 @@ To do this task, we will use `traindt` and `testdt` again, so that we can test t
 
 
 ```r
-assgn_plr <- clusterPLR(formula = tr_cl ~ sex+foreign+dx_data+latitude+longitude,
+assgn_plr <- clusterPLR(formula = Cluster ~ Gender+Foreign+Diabetes+HIV+Latitude+Longitude,
                         data = traindt,
                         newdata = testdt,
                         threshold = NULL,
@@ -269,12 +312,12 @@ assgn_plr
 ## Showing only the first six cases.
 ##  
 ##   rank_1 rank_2 rank_3
-## 1  CL072  CL021  CL001
-## 2  CL010  CL001  CL055
-## 3  CL003  CL017  CL023
-## 4  CL074  CL001  CL011
-## 5  CL020  CL070  CL068
-## 6  CL026  CL012  CL019
+## 1  CL015  CL021  CL009
+## 2  CL009  CL021  CL022
+## 3  CL004  CL063  CL003
+## 4  CL004  CL003  CL063
+## 5  CL003  CL063  CL004
+## 6  CL021  CL009  CL072
 ```
 
 The code above is to find the best _K = 3_ clusters a case can be assigned to using PLR model. If ones want to compare the method using random assignment or MLR model, run `clusterRandom()` or `clusterMLR()`.
@@ -308,7 +351,7 @@ To compute the accuracy for predicting the new cases assignment, run
 
 
 ```r
-acc(obj = assgn_plr, true.cluster = testdt$tr_cl)
+acc(obj = assgn_plr, true.cluster = testdt$Cluster)
 ```
 
 
@@ -325,7 +368,7 @@ To do this task, run
 
 ```r
 next_case <- case2sequence(obj = assgn_plr,
-                           case.id = testdt$id_server,
+                           case.id = testdt$ID,
                            nbest = 3)
 next_case
 ```
@@ -338,13 +381,13 @@ next_case
 ## Choosing the best 3 cases to be sequenced next. 
 ## Showing only few cases.
 ##  
-##   cluster  priority_1  priority_2 priority_3
-## 1   CL001       G1570        G788       G201
-## 2   CL002      G1105m        G164       G932
-## 3   CL003 G641m,G1246        <NA>       G108
-## 4   CL004        G233       G536m      G641m
-## 5   CL007        G249       G536m       G932
-## 6   CL008       G693m G623m,G882m       <NA>
+##   cluster priority_1 priority_2 priority_3
+## 1   CL001      G1939      G1058   G788FE29
+## 2   CL002      G1188      G1303      G1910
+## 3   CL003       G152      G1603      G1621
+## 4   CL004      G1910      G1303      G1188
+## 5   CL007       G108      G562m      G1342
+## 6   CL008      G1188      G1303      G1910
 ```
 
 
@@ -363,7 +406,7 @@ To obtain the accuracy of this task, run
 
 
 ```r
-acc(obj = next_case, true.cluster = testdt$tr_cl)
+acc(obj = next_case, true.cluster = testdt$Cluster)
 ```
 
 

@@ -21,8 +21,12 @@ install.packages("remotes")
 
 Once remotes is successfully installed, run the following to install and load `lr2cluster`:
 
-```{r install lr2cluster, message=FALSE}
+```{r install lr2cluster, message=FALSE, eval=F}
 remotes::install_github("ksusvita92/lr2cluster")
+library(lr2cluster)
+```
+
+```{r load lr2cluster, message=FALSE}
 library(lr2cluster)
 ```
 
@@ -30,14 +34,39 @@ library(lr2cluster)
 
 # Valencia Data
 
-The package provides a data of _M.tuberculosis_ in Valencia, Spain between 2014 and 2016. It consist of 11 variables and 531 observations, in which 363 are unclustered cases (noted by `tr_cl = unique`).
+The data of TB cases in Valencia is available at https://doi.org/10.7554/eLife.76605. The following is a short script to prepare the data. In this tutorial, we do not provide the real patient's geographical information.
 
 ```{r load data}
-data("tb_valencia")
-str(tb_valencia)
+library(readxl)
+library(dplyr)
+
+url <- paste("https://elifesciences.org/download/aHR0cHM6Ly9jZG4uZWxpZmVzY2llbmNlcy5vcmc",
+"vYXJ0aWNsZXMvNzY2MDUvZWxpZmUtNzY2MDUtc3VwcDEtdjEueGxzeA--/elife-76605-supp1-v1.xlsx?_ha",
+"sh=pzQwKD1DzDLre7kKrWI%2Fhd%2BjY2FGgpekrPI4vXrlWNo%3D", sep = "")
+destfile <- "rawdt.xlsx"
+curl::curl_download(url, destfile)
+rawdt <- read_excel(destfile, range = "A3:AB778", na = "NA")
+
+# subset the necessary column and cases
+tb_valencia <- rawdt %>% 
+  transmute(ID = ...1, Cluster = `Genomic
+Cluster ID`, 
+  Gender = Gender, 
+  Foreign = ifelse(`Country of birth`=="SPAIN", "No", "YES"), 
+  Diabetes = Diabetes, 
+  HIV = `HIV infected`) %>%
+  filter(!is.na(Gender), !is.na(Foreign), !is.na(Diabetes), !is.na(HIV)) 
+
+# subset clusters having >2 members
+nm <- as.data.frame(table(tb_valencia$Cluster)) %>% filter(Freq > 2) %>% pull(Var1)
+tb_valencia <- tb_valencia %>% filter(Cluster %in% nm)
+
+# create toy example for patient's location
+set.seed(123)
+tb_valencia <- tb_valencia %>%
+  mutate(Longitude = rnorm(nrow(tb_valencia)), Latitude = rnorm(nrow(tb_valencia)))
 ```
 
-To see the documentation of each variable, run `?tb_valencia`.
 
 
 
@@ -49,17 +78,16 @@ Pairwise-level data is a data used in the pairwise logistic regression model. Th
 To transform Valencia data into pairwise-level data, run:
 
 ```{r transform to pairwise}
-dt <- tb_valencia[tb_valencia$tr_cl != "unique",] #exclude unclustered cases
-pairdt <- zCovariate(cluster = dt$tr_cl,
-                     X = dt[,3:9],
-                     location = dt[,10:11],
-                     .removeRepetition = T, #.removeRepetition = F to keep all pairs
-                     id = dt$id_server)
+dt <- tb_valencia[tb_valencia$Cluster != "unique",] #exclude unclustered cases
+pairdt <- zCovariate(cluster = dt$Cluster,
+                     X = dt[,3:6],
+                     location = dt[,7:8],
+                     id = dt$ID)
 head(pairdt)
 ```
 
 
-Notice that there are 4 new columns in the data frame above: `case`, `to.case`, `y`, and `Spatial.`
+Notice that there are 4 new columns in the data frame above: `case`, `to.case`, `y`, and `Spatial`.
 
   + `case`, `to.case`: vector of case id; together represent a pair.
   + `y`: a binary variable; `y = 1` means if a pair is in the same cluster, `y = 0` means otherwise.
@@ -71,7 +99,7 @@ Each categorical variable will have one additional level, called `DIFF` which in
 
 # Pairwise Logistic Regression
 
-There are two logistic regression models introduced in this package: the multinomial logistic regression (MLR) and the pairwise logistic regression (PLR). The difference between the two models lies on the data type used to train the model, and the response variable. For instance, MLR uses individual-level data and the response variable is the index of the cases’ clusters, whereas PLR uses pairwise-level data and binary response variable.
+There are two logistic regression models introduced in this package: the multinomial logistic regression (MLR) and the pairwise logistic regression (PLR). The difference between the two models lies on the data type used to train the model, and the response variable. For instance, MLR uses individual-level data and the response variable is the index of the cases’ clusters, whereas PLR uses pairwise-level data and binary response variable indicating whether two cases are in the same cluster.
 
 
 ## Fit PLR model
@@ -79,12 +107,12 @@ There are two logistic regression models introduced in this package: the multino
 PLR perform regression analysis which maps pairwise predictors to a binary response variable. Suppose we want to fit predictors `sex`, `foreign`, `dx_data`, and `latitude` and `longitude.`
 
 ```{r fit plt}
-fit_plr <- plr(formula = tr_cl ~ sex+foreign+dx_data+latitude+longitude,
+fit_plr <- plr(formula = Cluster ~ Gender+Foreign+Diabetes+HIV+Latitude+Longitude,
                data = dt)
 summary(fit_plr)
 ```
 
-`summary()` function provides the estimated regression coefficients, together with their statistic t-test. An important note for the users is if ones want to fit spatial distance between two cases, ones must name the geographical location as `latitude` (or `lat`), and `longitude` (or `long`).
+`summary()` function provides the estimated regression coefficients, together with the Wald test. An important note for the users is if ones want to fit spatial distance between two cases, ones must name the geographical location as `latitude` (or `lat`, `Lat`, `Latitude`), and `longitude` (or `long`, `Long`, `Longitude`).
 
 
 ## Predict if two cases are in the same cluster
@@ -95,8 +123,9 @@ To make sure we split the data such that there are at least one case per cluster
 
 ```{r split the data}
 library(caret)
-set.seed(12345)
-id <- createDataPartition(dt$tr_cl, p = .6, list = F)
+
+set.seed(123)
+id <- createDataPartition(dt$Cluster, p = .6, list = F)
 traindt <- dt[id,]
 testdt <- dt[-id,]
 ```
@@ -104,11 +133,11 @@ testdt <- dt[-id,]
 Use `plr()` function to fit PLR model on `traindt`, and run the following to get the estimated probability of the response variable:
 
 ```{r train the model and predict}
-fit_plr <- plr(formula = tr_cl ~ sex+foreign+dx_data+latitude+longitude,
+fit_plr <- plr(formula = Cluster ~ Gender+Foreign+Diabetes+HIV+Latitude+Longitude,
                data = traindt)
 pred_plr <- predict(obj = fit_plr,
                     newdata = testdt,
-                    case.id = testdt$id_server) #case.id can be NULL
+                    case.id = testdt$ID) #case.id can be NULL
 ```
 
 The function `predict.plr()` (or `predict()`) returns a data frame which contains a vector of the predicted probability if a pair of cases are in the same cluster, and its standard error.
@@ -121,7 +150,7 @@ The function `optThreshold()` requires a vector of the true response variable an
 
 ```{r opt threshold}
 # get the true response variable of testdt data
-tr_resp <- zCovariate(cluster = testdt$tr_cl)$y
+tr_resp <- zCovariate(cluster = testdt$Cluster)$y
 opt_threshold <- optThreshold(response = tr_resp,
                               prediction = pred_plr$y,
                               cost.ratio = 50) #default is 1
@@ -158,7 +187,7 @@ The cluster assignment can be done by setting a threshold or choosing the best _
 To do this task, we will use `traindt` and `testdt` again, so that we can test the accuracy of our assignments. We will use the same variables as the previous section as well.
 
 ```{r cluster assignment}
-assgn_plr <- clusterPLR(formula = tr_cl ~ sex+foreign+dx_data+latitude+longitude,
+assgn_plr <- clusterPLR(formula = Cluster ~ Gender+Foreign+Diabetes+HIV+Latitude+Longitude,
                         data = traindt,
                         newdata = testdt,
                         threshold = NULL,
@@ -194,7 +223,7 @@ The accuracy in this context is the fraction of new cases whose true clusters is
 To compute the accuracy for predicting the new cases assignment, run
 
 ```{r acc, eval=FALSE}
-acc(obj = assgn_plr, true.cluster = testdt$tr_cl)
+acc(obj = assgn_plr, true.cluster = testdt$Cluster)
 ```
 
 
@@ -210,7 +239,7 @@ To do this task, run
 
 ```{r get next cases}
 next_case <- case2sequence(obj = assgn_plr,
-                           case.id = testdt$id_server,
+                           case.id = testdt$ID,
                            nbest = 3)
 next_case
 ```
@@ -229,7 +258,7 @@ next_case$best_cases
 To obtain the accuracy of this task, run
 
 ```{r acc cases, eval=FALSE}
-acc(obj = next_case, true.cluster = testdt$tr_cl)
+acc(obj = next_case, true.cluster = testdt$Cluster)
 ```
 
 
