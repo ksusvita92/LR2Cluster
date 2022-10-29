@@ -2,7 +2,7 @@
 *Cluster identification using multiple data sources*
 
 
-Welcome to the introduction of `lr2cluster` project! The project aims to assign cases of a disease to clusters using multiple data sources when direct methods, such as contact tracing or genome sequencing, are only available for some data.
+Welcome to the `lr2cluster` project! The project aims to assign cases of a disease to clusters using multiple data sources when direct methods, such as contact tracing or genome sequencing, are only available for some data.
 
 This page provides a tutorial and is complimentary to the paper 
 **Epidemiological Cluster Identification using Multiple Data Sources: An Approach Using Logistic Regression**, by
