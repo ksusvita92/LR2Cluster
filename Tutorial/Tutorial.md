@@ -1,19 +1,19 @@
 ---
 title: "An Introduction to lr2cluster"
 author: "Kurnia Susvitasari"
-date: "2022-10-26"
+date: "2022-10-28"
 output:
   pdf_document:
     keep_md: true
 ---
 
-This document is to provide an introductory tutorial to `lr2cluster` package. The package implements tools to help identify cluster assignments using multiple data sources when some direct methods such as contact tracing and genomic sequencing are only available for some data. There are also complimentary functions, such as to estimate a cluster’s size increment and to choose which new cases to be sequenced next. This tutorial provides an overview of `lr2cluster`’s basic functionalities.
+This document provides an introductory tutorial on the `lr2cluster` package. This package implements tools to help identify cluster assignments using multiple data sources when direct methods such as contact tracing and genomic sequencing are only available for some data. There are also complimentary functions, that can be used to estimate a cluster’s true size and to choose which new cases to be sequenced next. This tutorial provides an overview of `lr2cluster`’s basic functionalities.
 
 
 
-# Installing Package
+# Installing the Package
 
-To install the package, you need to install package remotes first:
+To install the package, you need to install the package remotes first:
 
 
 ```r
@@ -37,7 +37,7 @@ library(lr2cluster)
 
 # Valencia Data
 
-The data of TB cases in Valencia is available at https://doi.org/10.7554/eLife.76605. The following is a short script to prepare the data. In this tutorial, we do not provide the real patient's geographical information.
+Data for TB cases in Valencia is available at https://doi.org/10.7554/eLife.76605. The following is a short script to prepare the data. In this tutorial, we do not provide the cases' true geographical information, but randomly generate locations for each case.
 
 
 ```r
@@ -91,21 +91,35 @@ Cluster ID`,
 nm <- as.data.frame(table(tb_valencia$Cluster)) %>% filter(Freq > 2) %>% pull(Var1)
 tb_valencia <- tb_valencia %>% filter(Cluster %in% nm)
 
-# create toy example for patient's location
-set.seed(123)
+# download location data from a repo
+url <- paste("https://raw.githubusercontent.com/ksusvita92/Genomic-Clustering/master/",
+  "analysis%20scripts/location_data.csv", sep = "")
+location_data <- read.csv(url)
 tb_valencia <- tb_valencia %>%
-  mutate(Longitude = rnorm(nrow(tb_valencia)), Latitude = rnorm(nrow(tb_valencia)))
+  inner_join(location_data, by = "ID")
+str(tb_valencia)
+```
+
+```
+## tibble [533 x 8] (S3: tbl_df/tbl/data.frame)
+##  $ ID       : chr [1:533] "G368m" "G401m" "G553m" "G566m" ...
+##  $ Cluster  : chr [1:533] "CL001" "CL001" "CL001" "CL001" ...
+##  $ Gender   : chr [1:533] "male" "female" "female" "male" ...
+##  $ Foreign  : chr [1:533] "YES" "No" "No" "YES" ...
+##  $ Diabetes : chr [1:533] "yes" "no" "no" "no" ...
+##  $ HIV      : chr [1:533] "no" "no" "no" "no" ...
+##  $ Latitude : num [1:533] 48.4 47.6 48.7 48.7 49 ...
+##  $ Longitude: num [1:533] -8.93 -9.02 -8.86 -8.87 -8.74 ...
 ```
 
 
 
 
-## Transform to pairwise-level data
+## Transformation to pairwise data
 
-Pairwise-level data is a data used in the pairwise logistic regression model. This data represents the similarity (if the variable is categoric) and distance (if the variable is numeric) between a pair of cases. For example, in the Valencia data, latitude and longitude are the columns that represent the geographical location of an individual. Then the pairwise-level of these variables is the spatial distance between two cases.
+Our pairwise logistic regression model uses pairwise data, as discussed in the paper. For each variable in the raw individual data, each pair of cases has a pairwise variable that represents the dissimilarity between the two cases' individual variables. For example, each case has latitude and longitude in the individual data, but each pair of cases has distance as a variable in the pairwise data.
 
-
-To transform Valencia data into pairwise-level data, run:
+To transform Valencia data into pairwise data, run:
 
 
 ```r
@@ -118,13 +132,13 @@ head(pairdt)
 ```
 
 ```
-##    case to.case y  Spatial Gender Foreign Diabetes HIV
-## 1 G401m   G368m 1 132.6483   DIFF    DIFF     DIFF  no
-## 2 G553m   G368m 1 251.3182   DIFF    DIFF     DIFF  no
-## 3 G566m   G368m 1 190.1091   male     YES     DIFF  no
-## 4 G1163   G368m 1 294.5370   male     YES     DIFF  no
-## 5 G1411   G368m 1 348.3176   DIFF    DIFF     DIFF  no
-## 6  G201   G368m 0 271.9317   male     YES     DIFF  no
+##    case to.case y   Spatial Gender Foreign Diabetes HIV
+## 1 G401m   G368m 1 90.349667   DIFF    DIFF     DIFF  no
+## 2 G553m   G368m 1 26.103191   DIFF    DIFF     DIFF  no
+## 3 G566m   G368m 1 27.218045   male     YES     DIFF  no
+## 4 G1163   G368m 1 66.364288   male     YES     DIFF  no
+## 5 G1411   G368m 1  7.991447   DIFF    DIFF     DIFF  no
+## 6  G201   G368m 0 34.309328   male     YES     DIFF  no
 ```
 
 
@@ -140,7 +154,7 @@ Each categorical variable will have one additional level, called `DIFF` which in
 
 # Pairwise Logistic Regression
 
-There are two logistic regression models introduced in this package: the multinomial logistic regression (MLR) and the pairwise logistic regression (PLR). The difference between the two models lies on the data type used to train the model, and the response variable. For instance, MLR uses individual-level data and the response variable is the index of the cases’ clusters, whereas PLR uses pairwise-level data and binary response variable indicating whether two cases are in the same cluster.
+There are two logistic regression models introduced in this package: the multinomial logistic regression (MLR) and the pairwise logistic regression (PLR). The difference between the two models lies on the data type used to train the model, and the response variable. MLR uses individual-level data and the response variable is the index of the cases’ clusters, whereas PLR uses pairwise-level data and binary response variable indicating whether two cases are in the same cluster.
 
 
 ## Fit PLR model
@@ -161,28 +175,28 @@ summary(fit_plr)
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
-## -0.3175  -0.2366  -0.2242  -0.1775   2.9739  
+## -0.4494  -0.2584  -0.1947  -0.1153   3.9147  
 ## 
 ## Coefficients:
-##                Estimate Std. Error z value Pr(>|z|)    
-## (Intercept)  -4.1446254  0.2696505 -15.370  < 2e-16 ***
-## Genderfemale -0.0215090  0.2333326  -0.092  0.92655    
-## Gendermale    0.1057894  0.1327907   0.797  0.42565    
-## ForeignNo     0.5722562  0.1479516   3.868  0.00011 ***
-## ForeignYES    1.0130621  0.2335062   4.338 1.43e-05 ***
-## Diabetesno   -0.0137715  0.1525509  -0.090  0.92807    
-## Diabetesyes  -0.1957849  0.5991499  -0.327  0.74384    
-## HIVno        -0.1180810  0.1836775  -0.643  0.52031    
-## HIVyes       -0.1802961  1.0268152  -0.176  0.86062    
-## Spatial       0.0002080  0.0006323   0.329  0.74222    
+##               Estimate Std. Error z value Pr(>|z|)    
+## (Intercept)  -3.397422   0.253876 -13.382  < 2e-16 ***
+## Genderfemale  0.045867   0.235045   0.195 0.845283    
+## Gendermale    0.023765   0.133781   0.178 0.859006    
+## ForeignNo     0.561727   0.148603   3.780 0.000157 ***
+## ForeignYES    1.057671   0.235614   4.489 7.16e-06 ***
+## Diabetesno    0.080251   0.153546   0.523 0.601219    
+## Diabetesyes  -0.309873   0.600558  -0.516 0.605871    
+## HIVno        -0.012660   0.184637  -0.069 0.945334    
+## HIVyes       -0.240448   1.031831  -0.233 0.815738    
+## Spatial      -0.018604   0.001893  -9.827  < 2e-16 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
 ## (Dispersion parameter for binomial family taken to be 1)
 ## 
 ##     Null deviance: 2499.0  on 11324  degrees of freedom
-## Residual deviance: 2473.2  on 11315  degrees of freedom
-## AIC: 2493.2
+## Residual deviance: 2333.8  on 11315  degrees of freedom
+## AIC: 2353.8
 ## 
 ## Number of Fisher Scoring iterations: 7
 ```
@@ -192,9 +206,9 @@ summary(fit_plr)
 
 ## Predict if two cases are in the same cluster
 
-Suppose there are a collection of new cases which we have no information on their true clusters, and we want to predict the probability if a pair belongs to the same cluster. To illustrate this, let us split the `tb_valencia` data into two, one is to train the PLR model and the other is to test the model. 
+Suppose there are a collection of new cases for which we have no information on their true clusters, and we want to predict the probability of a pair belonging to the same cluster. To illustrate this, let us split the `tb_valencia` data into two: one is to train the PLR model and the other is to test the model. 
 
-To make sure we split the data such that there are at least one case per cluster in each data split, use `createDataPartition()` from `caret` package. In this example, we set 60% proportion of the data to be in training set.
+To make sure we split the data such that there is at least one case per cluster in each data split, use `createDataPartition()` from `caret` package. In this example, we set 60% proportion of the data to be in the training set.
 
 
 ```r
@@ -210,7 +224,7 @@ library(caret)
 ```
 
 ```r
-set.seed(123)
+set.seed(12345)
 id <- createDataPartition(dt$Cluster, p = .6, list = F)
 traindt <- dt[id,]
 testdt <- dt[-id,]
@@ -222,12 +236,19 @@ Use `plr()` function to fit PLR model on `traindt`, and run the following to get
 ```r
 fit_plr <- plr(formula = Cluster ~ Gender+Foreign+Diabetes+HIV+Latitude+Longitude,
                data = traindt)
+```
+
+```
+## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+```
+
+```r
 pred_plr <- predict(obj = fit_plr,
                     newdata = testdt,
                     case.id = testdt$ID) #case.id can be NULL
 ```
 
-The function `predict.plr()` (or `predict()`) returns a data frame which contains a vector of the predicted probability if a pair of cases are in the same cluster, and its standard error.
+The function `predict.plr()` (or `predict()`) returns a data frame which contains a vector of the predicted probability of a pair of cases are in the same cluster, and its standard error.
 
 
 ## Finding the optimum threshold
@@ -241,7 +262,7 @@ The function `optThreshold()` requires a vector of the true response variable an
 tr_resp <- zCovariate(cluster = testdt$Cluster)$y
 opt_threshold <- optThreshold(response = tr_resp,
                               prediction = pred_plr$y,
-                              cost.ratio = 50) #default is 1
+                              cost.ratio = 30) #default is 1
 ```
 
 ```
@@ -258,7 +279,7 @@ opt_threshold
 ## ==================================================================
 ##  
 ##   threshold specificity sensitivity    accuracy         auc 
-##   0.0206544   0.6842975   0.6000000   0.6832653   0.6200000
+##  0.03939362  0.87190083  0.53333333  0.86775510  0.80352617
 ```
 
 `optThreshold()` returns a list of values, such as:
@@ -283,13 +304,13 @@ which also shows the position of the optimum threshold given `cost.ratio`.
 
 # Cluster Assignment
 
-The previous section is to predict if some new cases belong to the same cluster. However, ones may wonder if those cases may belong to one of the known clusters in the training set. This section is addressed to find the most probable clusters a new case can be assigned to based on some scores called _cluster scores_. These scores, which are on a scale between 0 to 1, represent how likely a new case belong to some clusters.
+The previous section shows how to predict if two new cases belong to the same cluster. However, one may wonder if those new cases belong to one of the known clusters in the training set. This section shows how to find the most probable clusters a new case can be assigned to based on some scores called _cluster scores_. These scores, which are on a scale between 0 to 1, represent how likely a new case belong to a given cluster.
 
 
 
 ## Finding probable clusters a case most likely to belong to
 
-The cluster assignment can be done by setting a threshold or choosing the best _K_ clusters with higher ranks. If a threshold if provided, any clusters whose scores are less than the threshold will be omitted. Otherwise, the method will assign a case to the best _K_ clusters with higher ranks.
+For a given new case, cluster assignment can be done by setting a threshold, and selecting all clusters for which the cluster score exceeds the threshold. Alternatively, one can choose the  _K_ clusters with the highest cluster score for the case. The following code does the first if a threshold if provided, and otherwise assigns a case to the best _K_ clusters.
 
 To do this task, we will use `traindt` and `testdt` again, so that we can test the accuracy of our assignments. We will use the same variables as the previous section as well.
 
@@ -300,6 +321,13 @@ assgn_plr <- clusterPLR(formula = Cluster ~ Gender+Foreign+Diabetes+HIV+Latitude
                         newdata = testdt,
                         threshold = NULL,
                         nbest = 3)
+```
+
+```
+## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+```
+
+```r
 assgn_plr
 ```
 
@@ -312,18 +340,18 @@ assgn_plr
 ## Showing only the first six cases.
 ##  
 ##   rank_1 rank_2 rank_3
-## 1  CL015  CL021  CL009
-## 2  CL009  CL021  CL022
-## 3  CL004  CL063  CL003
-## 4  CL004  CL003  CL063
-## 5  CL003  CL063  CL004
-## 6  CL021  CL009  CL072
+## 1  CL021  CL009  CL072
+## 2  CL020  CL072  CL045
+## 3  CL009  CL021  CL016
+## 4  CL007  CL063  CL002
+## 5  CL011  CL001  CL034
+## 6  CL011  CL001  CL034
 ```
 
 The code above is to find the best _K = 3_ clusters a case can be assigned to using PLR model. If ones want to compare the method using random assignment or MLR model, run `clusterRandom()` or `clusterMLR()`.
 
 
-To obtain the best probable clusters for all new cases, run:
+To obtain the most probable clusters for all new cases, run:
 
 
 ```r
@@ -343,7 +371,7 @@ See `?clusterPLR`, `?clusterRandom`, and `?clusterMLR` for more details.
 
 
 
-## Compute the accuracy for correctly assigning cases to their clusters
+## Compute the accuracy of assigning cases to their correct clusters
 
 The accuracy in this context is the fraction of new cases whose true clusters is in the best _K_ clusters predicted. For example, suppose that a case’s true cluster is "Cluster A". If "Cluster A" is predicted as one of the _K_ clusters, then the method will consider the assignment correct.
 
@@ -357,7 +385,7 @@ acc(obj = assgn_plr, true.cluster = testdt$Cluster)
 
 
 
-# Other Application
+# Other Applications
 
 ## Cases to be sequenced next
 
@@ -382,16 +410,16 @@ next_case
 ## Showing only few cases.
 ##  
 ##   cluster priority_1 priority_2 priority_3
-## 1   CL001      G1939      G1058   G788FE29
-## 2   CL002      G1188      G1303      G1910
-## 3   CL003       G152      G1603      G1621
-## 4   CL004      G1910      G1303      G1188
-## 5   CL007       G108      G562m      G1342
-## 6   CL008      G1188      G1303      G1910
+## 1   CL001      G1939   G788FE29       G201
+## 2   CL002       G249       G932       G108
+## 3   CL003      G1089      G1842      G307m
+## 4   CL004       G108      G1653      G1786
+## 5   CL007       G932       G249      G882m
+## 6   CL008      G693m      G1440       G108
 ```
 
 
-The above code returns the suggested 3 cases to be chosen given a cluster based on their cluster score’s rank. If ones want to find _K_ best cases, change _nbest = K_ or, ones can also provide a threshold which serves as a cut-off to any cases with lower score.
+The above code returns the suggested 3 cases to be chosen given a cluster based on their cluster score’s rank. If one wants to find the _K_ best cases, change _nbest = K_ or, one can also provide a threshold which serves as a cut-off to any cases with lower score.
 
 To obtain the best cases for all clusters, run
 
@@ -402,7 +430,7 @@ next_case$best_cases
 ```
 
 
-To obtain the accuracy of this task, run
+To obtain the accuracy on this task, run
 
 
 ```r
@@ -411,9 +439,9 @@ acc(obj = next_case, true.cluster = testdt$Cluster)
 
 
 
-## Estimate a cluster’s size increment
+## Estimate a cluster’s true size
 
-Suppose that we have a cluster of interest _C_ with some cases in it, and a collection of unassigned new cases. We can estimate the total number of new cases that would get assigned to _C_, and therefore estimate the increment of cluster _C_’s size.
+Suppose that we have a cluster of interest _C_ with some cases in it, and a collection of unassigned new cases. We can estimate the total number of new cases that would get assigned to _C_, and therefore estimate cluster _C_’s true size.
 
 
 ```r
@@ -426,6 +454,6 @@ The argument `rho` in `clusterSize()` represents the probability that a case doe
 
 # Closing Remarks
 
-`lr2cluster` is a tool to assign newly identified cases of an infectious disease to existing transmission clusters using several data streams. The application is extended to also for example, predict which new cases to be sequenced next, given a cluster, and estimate a cluster’s size increment.
+`lr2cluster` is a tool to assign newly identified cases of an infectious disease to existing transmission clusters using several data streams. The application is extended to also, for example, predict which new cases to be sequenced next, given a cluster, and estimate a cluster’s true size.
 
-For some general questions and bug report, please send to ksusvita@gmail.com.
+For general questions and bug reports, please send a message to ksusvita@gmail.com.

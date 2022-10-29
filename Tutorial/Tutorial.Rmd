@@ -61,10 +61,13 @@ Cluster ID`,
 nm <- as.data.frame(table(tb_valencia$Cluster)) %>% filter(Freq > 2) %>% pull(Var1)
 tb_valencia <- tb_valencia %>% filter(Cluster %in% nm)
 
-# create toy example for patient's location
-set.seed(123)
+# download location data from a repo
+url <- paste("https://raw.githubusercontent.com/ksusvita92/Genomic-Clustering/master/",
+  "analysis%20scripts/location_data.csv", sep = "")
+location_data <- read.csv(url)
 tb_valencia <- tb_valencia %>%
-  mutate(Longitude = rnorm(nrow(tb_valencia)), Latitude = rnorm(nrow(tb_valencia)))
+  inner_join(location_data, by = "ID")
+str(tb_valencia)
 ```
 
 
@@ -123,7 +126,7 @@ To make sure we split the data such that there is at least one case per cluster 
 ```{r split the data}
 library(caret)
 
-set.seed(123)
+set.seed(12345)
 id <- createDataPartition(dt$Cluster, p = .6, list = F)
 traindt <- dt[id,]
 testdt <- dt[-id,]
@@ -152,7 +155,7 @@ The function `optThreshold()` requires a vector of the true response variable an
 tr_resp <- zCovariate(cluster = testdt$Cluster)$y
 opt_threshold <- optThreshold(response = tr_resp,
                               prediction = pred_plr$y,
-                              cost.ratio = 50) #default is 1
+                              cost.ratio = 30) #default is 1
 opt_threshold
 ```
 
