@@ -7,7 +7,7 @@ Author: c(person(given = "Kurnia",
                  family = "Susvitasari",
                  role = c("aut", "cre")),
                  email = "susvitasari@icloud.com")
-Description: A method that allows us to group unsequenced cases into their most probable clusters using pairwise similary between cases. The method is extended to determine if a pair of unsequenced cases are likely to cluster together, and to estimate the increment of the true cluster size given a set of unsequenced cases.
+Description: A method that allows us to group unsequenced cases into their most probable clusters using pairwise similary between cases. The method is extended to determine if a pair of unsequenced cases are likely to cluster together, and to estimate the final true cluster size given a set of unsequenced cases.
 Depends: R (>= 3.6.0)
 Imports: dplyr, 
   foreach, 
