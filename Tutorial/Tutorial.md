@@ -1,7 +1,7 @@
 ---
 title: "An Introduction to lr2cluster"
 author: "Kurnia Susvitasari"
-date: "2022-10-28"
+date: "2022-10-29"
 output:
   pdf_document:
     keep_md: true
@@ -25,7 +25,6 @@ Once remotes is successfully installed, run the following to install and load `l
 
 ```r
 remotes::install_github("ksusvita92/lr2cluster")
-library(lr2cluster)
 ```
 
 
@@ -37,46 +36,20 @@ library(lr2cluster)
 
 # Valencia Data
 
-Data for TB cases in Valencia is available at https://doi.org/10.7554/eLife.76605. The following is a short script to prepare the data. In this tutorial, we do not provide the cases' true geographical information, but randomly generate locations for each case.
+Data for TB cases in Valencia is available at https://doi.org/10.7554/eLife.76605. The following is a short script to prepare the data. In this tutorial, we do not provide the cases' true geographical information. The location data used in this tutorial is a toy example which can be downloaded from GitHub repository [here](https://raw.githubusercontent.com/ksusvita92/Genomic-Clustering/master/analysis%20scripts/location_data.csv).
 
 
 ```r
 library(readxl)
 library(dplyr)
-```
 
-```
-## 
-## Attaching package: 'dplyr'
-```
-
-```
-## The following objects are masked from 'package:stats':
-## 
-##     filter, lag
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     intersect, setdiff, setequal, union
-```
-
-```r
 url <- paste("https://elifesciences.org/download/aHR0cHM6Ly9jZG4uZWxpZmVzY2llbmNlcy5vcmc",
 "vYXJ0aWNsZXMvNzY2MDUvZWxpZmUtNzY2MDUtc3VwcDEtdjEueGxzeA--/elife-76605-supp1-v1.xlsx?_ha",
 "sh=pzQwKD1DzDLre7kKrWI%2Fhd%2BjY2FGgpekrPI4vXrlWNo%3D", sep = "")
 destfile <- "rawdt.xlsx"
 curl::curl_download(url, destfile)
 rawdt <- read_excel(destfile, range = "A3:AB778", na = "NA")
-```
 
-```
-## New names:
-## * `` -> `...1`
-```
-
-```r
 # subset the necessary column and cases
 tb_valencia <- rawdt %>% 
   transmute(ID = ...1, Cluster = `Genomic

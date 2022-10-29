@@ -23,7 +23,6 @@ Once remotes is successfully installed, run the following to install and load `l
 
 ```{r install lr2cluster, message=FALSE, eval=F}
 remotes::install_github("ksusvita92/lr2cluster")
-library(lr2cluster)
 ```
 
 ```{r load lr2cluster, message=FALSE}
@@ -34,9 +33,9 @@ library(lr2cluster)
 
 # Valencia Data
 
-Data for TB cases in Valencia is available at https://doi.org/10.7554/eLife.76605. The following is a short script to prepare the data. In this tutorial, we do not provide the cases' true geographical information, but randomly generate locations for each case.
+Data for TB cases in Valencia is available at https://doi.org/10.7554/eLife.76605. The following is a short script to prepare the data. In this tutorial, we do not provide the cases' true geographical information. The location data used in this tutorial is a toy example which can be downloaded from GitHub repository [here](https://raw.githubusercontent.com/ksusvita92/Genomic-Clustering/master/analysis%20scripts/location_data.csv).
 
-```{r load data}
+```{r load data, message=FALSE}
 library(readxl)
 library(dplyr)
 
