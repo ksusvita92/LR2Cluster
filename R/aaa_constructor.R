@@ -70,6 +70,8 @@ print.optimumThreshold <- function(x){
 plot.optimumThreshold <- function(x, ...){
   theroc <- x$roc
   plot.roc(theroc, thresholds="best",
+           asp = NA,
+           legacy.axes = T,
            print.thres="best",
            print.thres.best.weights=c(x$cost_ratio, x$pair_proportion), ...)
 }
