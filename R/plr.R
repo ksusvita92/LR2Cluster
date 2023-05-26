@@ -18,8 +18,9 @@
 plr <- function(formula, data){
   data <- as.data.frame(data)
   # Transform to pairwise data
-  mod <- formula(formula)
-  split.mod <-  unlist(stringr::str_split(mod, "\ ~"))
+  #mod <- formula(formula)
+  #split.mod <-  unlist(stringr::str_split(mod, "\ ~"))
+  mod <- as.character(formula)
   yname <- split.mod[2]
 
   if(split.mod[3] == ".") varname <- names(data)[names(data) != yname]
