@@ -39,8 +39,8 @@ clusterPLR <- function(formula, data, newdata, threshold = NULL, nbest = 3){
   data <- as.data.frame(data)
   newdata <- as.data.frame(newdata)
 
-  mod <- formula(formula)
-  split.mod <-  unlist(stringr::str_split(mod, "\ ~"))
+  #mod <- formula(formula)
+  split.mod <-  unlist(stringr::str_split(as.character(formula), "\ ~"))
   yname <- split.mod[2]
 
   if(split.mod[3] == ".") varname <- names(data)[names(data) != yname]
