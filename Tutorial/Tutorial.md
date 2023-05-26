@@ -1,7 +1,7 @@
 ---
 title: "An Introduction to lr2cluster"
 author: "Kurnia Susvitasari"
-date: "2022-10-29"
+date: "2023-05-26"
 output:
   pdf_document:
     keep_md: true
@@ -52,8 +52,7 @@ rawdt <- read_excel(destfile, range = "A3:AB778", na = "NA")
 
 # subset the necessary column and cases
 tb_valencia <- rawdt %>% 
-  transmute(ID = ...1, Cluster = `Genomic
-Cluster ID`, 
+  transmute(ID = ...1, Cluster = `Genomic\nCluster ID`, 
   Gender = Gender, 
   Foreign = ifelse(`Country of birth`=="SPAIN", "No", "YES"), 
   Diabetes = Diabetes, 
