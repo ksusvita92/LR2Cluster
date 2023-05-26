@@ -22,8 +22,8 @@ predict.plr <- function(obj, newdata, case.id = NULL){
   newdata <- as.data.frame(newdata)
 
   # get pairwise data
-  mod <- obj$formula
-  split.mod <-  unlist(stringr::str_split(mod, "\ ~"))
+  #mod <- obj$formula
+  split.mod <-  unlist(stringr::str_split(as.character(obj$formula), "\ ~"))
   varname <- unlist(stringr::str_split(split.mod[3], "\ +"))
   varnameX <- varname[!(varname %in% c("+", "Spatial"))]
   if("Spatial" %in% varname) varnameLoc <- names(newdata)[names(newdata) %in% c("lat", "long", "latitude", "longitude", "Lat", "Long", "Latitude", "Longitude")]
