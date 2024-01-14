@@ -26,4 +26,4 @@ library("lr2cluster")
 
 ## Tutorial and questions
 - The tutorial can be downloaded [here](https://github.com/ksusvita92/lr2cluster/blob/master/Tutorial/Tutorial.pdf)
-- For general questions and bug reports, contact <ksusvita@gmail.com>
+- For general questions and bug reports, contact <kurniasusvitasari@ui.ac.id>
